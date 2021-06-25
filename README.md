@@ -1,12 +1,12 @@
-# Defra::Ruby::Template
+# Defra Ruby Template
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/defra/ruby/template`. To experiment with that code, run `bin/console` for an interactive prompt.
+## About
 
-TODO: Delete this and the text above, and describe your gem
+Adds a GOV.UK-ready layout template and the [govuk_frontend assets](https://github.com/alphagov/govuk-frontend) to a Rails application.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add this line to the application's Gemfile:
 
 ```ruby
 gem 'defra-ruby-template'
@@ -14,29 +14,58 @@ gem 'defra-ruby-template'
 
 And then execute:
 
-    $ bundle install
-
-Or install it yourself as:
-
-    $ gem install defra-ruby-template
+    $ bundle
 
 ## Usage
 
-- to update,
+The Rails application will need to have SCSS enabled (e.g. `sass-rails`).
+
+This gem includes the `defra_ruby_template` layout, and can be included  in a Rails project by adding the following to the default layout (e.g. `application.html.erb`)
+
 ```
-npm install govuk-frontend --save
 
-rake
+<% content_for :page_title do %>
+    Page title or defaults to the i18n `global_proposition_header`
+<% end %>
+
+<% content_for :head do %>
+  Stylesheets, Analytics, etc.
+<% end %>
+
+<% content_for :header_content do %>
+ Application name and top-level links
+<% end %>
+
+<% content_for :phase_banner do %>
+  Phase banner, e.g Alpha, Beta, etc
+<% end %>
+
+<% content_for :back_link do %>
+    Link to go back
+<% end %>
+
+<% content_for :footer do %>
+  Application specific footer links
+<% end %>
+
+<%= render template: "layouts/defra_ruby_template" %>
+
 ```
 
 
-## Development
+## Updating the govuk-frontend
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+To update to the latest govuk-frontend files:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```
+$ npm install govuk-frontend --save
+$ rake
+```
+
+Then update the [`DefraRubyTemplate::Version`](https://github.com/DEFRA/defra-ruby-template/blob/main/lib/defra_ruby_template/version.rb) so that it matches the `govuk-frontend` [version](https://github.com/alphagov/govuk-frontend/tags).
+
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/defra-ruby-template.
+Bug reports and pull requests are welcome on GitHub at https://github.com/DEFRA/defra-ruby-template.
 
