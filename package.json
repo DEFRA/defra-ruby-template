@@ -1,0 +1,29 @@
+{
+  "name": "defra-ruby-template",
+  "version": "1.0.0",
+  "description": "DEFRA Ruby Template ",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "npx node-sass ./vendor/assets/stylesheets/govuk-frontend-rails.scss /tmp/govuk-frontend-rails.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DEFRA/defra-ruby-template.git"
+  },
+  "keywords": [
+    "govuk_frontend",
+    "rails"
+  ],
+  "author": "Toby Privett",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DEFRA/defra-ruby-template/issues"
+  },
+  "homepage": "https://github.com/DEFRA/defra-ruby-template#readme",
+  "dependencies": {
+    "govuk-frontend": "^3.13.0"
+  }
+}
