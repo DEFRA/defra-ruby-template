@@ -1,5 +1,10 @@
 # Defra Ruby Template
 
+![Build Status](https://github.com/DEFRA/defra-ruby-template/workflows/CI/badge.svg?branch=main)
+[![security](https://hakiri.io/github/DEFRA/defra-ruby-template/main.svg)](https://hakiri.io/github/DEFRA/defra-ruby-template/main)
+[![Gem Version](https://badge.fury.io/rb/defra_ruby_template.svg)](https://badge.fury.io/rb/defra_ruby_address)
+[![Licence](https://img.shields.io/badge/Licence-OGLv3-blue.svg)](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3)
+
 ## About
 
 Adds a GOV.UK-ready layout template and the [govuk_frontend assets](https://github.com/alphagov/govuk-frontend) to a Rails application.
@@ -68,4 +73,3 @@ Then update the [`DefraRubyTemplate::Version`](https://github.com/DEFRA/defra-ru
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/DEFRA/defra-ruby-template.
-
