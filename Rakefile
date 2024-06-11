@@ -22,9 +22,9 @@ end
 
 task "fonts" do
   Rake::FileList[
-    "node_modules/govuk-frontend/dist/assets/fonts/*.{eot,woff,woff2,ico,svg}"
+    "node_modules/govuk-frontend/dist/govuk/assets/fonts/*.{eot,woff,woff2,ico,svg}"
   ].each do |source|
-    target = source.sub("node_modules/govuk-frontend/dist/assets/fonts", "vendor/assets/fonts")
+    target = source.sub("node_modules/govuk-frontend/dist/govuk/assets/fonts", "vendor/assets/fonts")
     mkdir_p(File.dirname(target))
     copy_file source, target
   end
@@ -32,9 +32,9 @@ end
 
 task "images" do
   Rake::FileList[
-    "node_modules/govuk-frontend/dist/assets/images/*.{png,gif,jpg,ico,svg}"
+    "node_modules/govuk-frontend/dist/govuk/assets/images/*.{png,gif,jpg,ico,svg}"
   ].each do |source|
-    target = source.sub("node_modules/govuk-frontend/dist/assets/images", "vendor/assets/images")
+    target = source.sub("node_modules/govuk-frontend/dist/govuk/assets/images", "vendor/assets/images")
     mkdir_p(File.dirname(target))
     copy_file source, target
   end
