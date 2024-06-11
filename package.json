@@ -24,6 +24,6 @@
   },
   "homepage": "https://github.com/DEFRA/defra-ruby-template#readme",
   "dependencies": {
-    "govuk-frontend": "^3.15.0"
+    "govuk-frontend": "5.4.0"
   }
 }
