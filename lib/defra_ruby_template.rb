@@ -18,7 +18,8 @@ module DefraRubyTemplate
             "govuk-logotype-crown.png",
             "govuk-mask-icon.svg",
             "govuk-opengraph-image.png",
-            "govuk-frontend.min.css"
+            "govuk-frontend.min.css",
+            "govuk-frontend-min.js"
           ]
       end
     end
