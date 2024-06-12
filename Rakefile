@@ -6,7 +6,7 @@ task default: :assets
 
 task "assets" do
   %w[
-    minified_assets
+    minified_css
     fonts
     images
     stylesheets
@@ -23,8 +23,7 @@ def copy_assets(source_pattern, target_replacement)
   end
 end
 
-task "minified_assets" do
-  copy_assets("node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.js", "vendor/assets/javascripts")
+task "minified_css" do
   copy_assets("node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.css", "vendor/assets/stylesheets")
 end
 
