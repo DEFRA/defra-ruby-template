@@ -10,6 +10,7 @@ task "assets" do
     fonts
     images
     stylesheets
+    javascripts
   ].each do |task_name|
     Rake::Task[task_name].execute
   end
@@ -32,9 +33,18 @@ task "stylesheets" do
 end
 
 task "fonts" do
-  copy_assets("node_modules/govuk-frontend/govuk/assets/fonts/*.{eot,woff,woff2,ico,svg}", "vendor")
+  copy_assets("node_modules/govuk-frontend/dist/govuk/assets/fonts/*.{eot,woff,woff2,ico,svg}", "vendor")
 end
 
 task "images" do
-  copy_assets("node_modules/govuk-frontend/govuk/assets/images/*.{png,gif,jpg,ico,svg}", "vendor")
+  copy_assets("node_modules/govuk-frontend/dist/govuk/assets/images/*.{png,gif,jpg,ico,svg}", "vendor")
+end
+
+task "javascripts" do
+  Rake::FileList["node_modules/govuk-frontend/dist/govuk/all.bundle.js"].each do |source|
+    target = source.sub("node_modules/govuk-frontend/dist/govuk", "vendor/assets/javascripts")
+    target = target.sub("all.bundle.js", "defra_ruby_template.js")
+    mkdir_p(File.dirname(target))
+    copy_file source, target
+  end
 end
