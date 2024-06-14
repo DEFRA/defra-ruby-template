@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "bundler/gem_tasks"
 require "defra_ruby_template/version"
 
@@ -51,11 +52,11 @@ task "javascripts" do
 end
 
 def create_scss_file
-  content = <<-SCSS
-// Using Rails with the asset pipeline so set the helper methods
-$govuk-font-url-function: 'image-url';
-$govuk-image-url-function: 'font-url';
-
+  content = <<~SCSS
+    // Using Rails with the asset pipeline so set the helper methods
+    $govuk-font-url-function: 'image-url';
+    $govuk-image-url-function: 'font-url';
+    
   SCSS
 
   source_file = "node_modules/govuk-frontend/dist/govuk/all.scss"
