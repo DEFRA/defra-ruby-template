@@ -25,3 +25,7 @@ jobs:
       - name: Run lint check
         run: |
           bundle exec rubocop --format progress --format json --out rubocop-result.json
+
+      - name: Run unit tests
+        run: |
+          bundle exec rspec

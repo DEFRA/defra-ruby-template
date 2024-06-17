@@ -6,45 +6,65 @@ require "defra_ruby_template/version"
 task default: :assets
 
 task "assets" do
-  Rake::Task["stylesheets"].execute
-  Rake::Task["fonts"].execute
-  Rake::Task["images"].execute
-  Rake::Task["javascripts"].execute
+  %w[
+    minified_css
+    fonts
+    images
+    stylesheets
+    javascripts
+  ].each do |task_name|
+    Rake::Task[task_name].execute
+  end
+end
+
+def copy_assets(source_pattern, target_replacement)
+  Rake::FileList[source_pattern].each do |source|
+    target = source.sub("node_modules/govuk-frontend/dist/govuk", target_replacement)
+    mkdir_p(File.dirname(target))
+    copy_file source, target
+  end
+end
+
+task "minified_css" do
+  copy_assets("node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.css", "vendor/assets/stylesheets")
 end
 
 task "stylesheets" do
-  Rake::FileList["node_modules/govuk-frontend/govuk/**/*.scss"].each do |source|
-    target = source.sub("node_modules/govuk-frontend/govuk", "vendor/assets/stylesheets")
-    mkdir_p(File.dirname(target))
-    copy_file source, target
-  end
+  copy_assets("node_modules/govuk-frontend/dist/govuk/**/*.scss", "vendor/assets/stylesheets")
+  create_scss_file
 end
 
 task "fonts" do
-  Rake::FileList[
-     "node_modules/govuk-frontend/govuk/assets/fonts/*.{eot,woff,woff2,ico,svg}"
-   ].each do |source|
-     target = source.sub("node_modules/govuk-frontend/govuk", "vendor")
-     mkdir_p(File.dirname(target))
-     copy_file source, target
-   end
+  copy_assets("node_modules/govuk-frontend/dist/govuk/assets/fonts/*.{eot,woff,woff2,ico,svg}", "vendor")
 end
 
 task "images" do
-  Rake::FileList[
-    "node_modules/govuk-frontend/govuk/assets/images/*.{png,gif,jpg,ico,svg}"
-  ].each do |source|
-    target = source.sub("node_modules/govuk-frontend/govuk", "vendor")
+  copy_assets("node_modules/govuk-frontend/dist/govuk/assets/images/*.{png,gif,jpg,ico,svg}", "vendor")
+end
+
+task "javascripts" do
+  Rake::FileList["node_modules/govuk-frontend/dist/govuk/all.bundle.js"].each do |source|
+    target = source.sub("node_modules/govuk-frontend/dist/govuk", "vendor/assets/javascripts")
+    target = target.sub("all.bundle.js", "defra_ruby_template.js")
     mkdir_p(File.dirname(target))
     copy_file source, target
   end
 end
 
-task "javascripts" do
-  Rake::FileList["node_modules/govuk-frontend/govuk/all.js"].each do |source|
-    target = source.sub("node_modules/govuk-frontend/govuk", "vendor/assets/javascripts")
-    target = target.sub("all.js", "defra_ruby_template.js")
-    mkdir_p(File.dirname(target))
-    copy_file source, target
+def create_scss_file
+  content = <<~SCSS
+    // Using Rails with the asset pipeline so set the helper methods
+    $govuk-font-url-function: 'image-url';
+    $govuk-image-url-function: 'font-url';
+    
+  SCSS
+
+  source_file = "node_modules/govuk-frontend/dist/govuk/all.scss"
+  target_file = "vendor/assets/stylesheets/defra_ruby_template.scss"
+
+  mkdir_p(File.dirname(target_file))
+  File.open(target_file, "w") do |file|
+    file.write(content)
+    file.write(File.read(source_file))
   end
 end
