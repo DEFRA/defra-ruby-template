@@ -4,4 +4,10 @@ $govuk-image-url-function: 'font-url';
 
 @import "index";
 
+@include _warning(
+  "import-using-all",
+  "Importing using 'govuk/all' is deprecated. Update your import statement to import 'govuk/index'.",
+  $silence-further-warnings: false
+);
+
 /*# sourceMappingURL=all.scss.map */
