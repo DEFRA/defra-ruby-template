@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    defra_ruby_template (5.10.2)
+    defra_ruby_template (5.11.0)
 
 GEM
   remote: https://rubygems.org/
