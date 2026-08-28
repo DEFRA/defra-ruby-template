@@ -29,3 +29,13 @@ jobs:
       - name: Run unit tests
         run: |
           bundle exec rspec
+
+      # Re-vendoring must be a no-op.
+      - name: Check the vendored assets are in sync with govuk-frontend
+        run: |
+          npm ci
+          bundle exec rake
+          git diff --exit-code
+
+      - name: Check the vendored stylesheet compiles
+        run: npm test

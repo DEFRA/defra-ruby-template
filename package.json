@@ -7,7 +7,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "npx --yes sass --load-path=vendor/assets/stylesheets vendor/assets/stylesheets/defra_ruby_template.scss /tmp/defra_ruby_template.css"
+    "test": "npx --yes sass@1.102.0 --load-path=vendor/assets/stylesheets vendor/assets/stylesheets/defra_ruby_template.scss /tmp/defra_ruby_template.css"
   },
   "repository": {
     "type": "git",
