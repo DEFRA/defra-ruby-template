@@ -6,9 +6,12 @@ updates:
       interval: daily
     open-pull-requests-limit: 10
     versioning-strategy: lockfile-only
+  # "increase" bumps package.json as well as the lockfile, so a version change is
+  # visible in the PR and we get the chance to run `rake` to vendor the updated
+  # files into vendor/assets.
   - package-ecosystem: npm
     directory: "/"
     schedule:
       interval: daily
     open-pull-requests-limit: 10
-    versioning-strategy: lockfile-only
+    versioning-strategy: increase
