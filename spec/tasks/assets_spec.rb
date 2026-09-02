@@ -1,22 +1,35 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "rake"
 require "rspec"
+require "tmpdir"
 
 # Load the Rakefile
 load File.expand_path("../../Rakefile", __dir__)
 
 RSpec.describe "Rake tasks" do
-  def root
+  def repo_root
     File.expand_path("../..", __dir__)
   end
 
+  # Paths in the Rakefile are relative to the working directory, so the examples
+  # below resolve against the throwaway copy rather than the repo.
   def vendored(path)
-    File.join(root, "vendor/assets", path)
+    File.join("vendor/assets", path)
   end
 
   def tasks
     %w[clean minified_css fonts images manifest stylesheets javascripts]
+  end
+
+  # The tasks wipe vendor/assets before rewriting it. This runs them somewhere
+  # disposable.
+  around do |example|
+    Dir.mktmpdir("defra_ruby_template") do |dir|
+      FileUtils.ln_s(File.join(repo_root, "node_modules"), File.join(dir, "node_modules"))
+      Dir.chdir(dir) { example.run }
+    end
   end
 
   before do
@@ -34,8 +47,8 @@ RSpec.describe "Rake tasks" do
   describe "assets" do
     before { Rake::Task["assets"].invoke }
 
-    it "runs without error" do
-      expect { Rake::Task["assets"].invoke }.not_to raise_error
+    it "vendors the govuk-frontend stylesheets" do
+      expect(Dir.glob(vendored("stylesheets/**/*.scss")).size).to be > 100
     end
 
     it "vendors a single asset set, with no rebrand split", :aggregate_failures do
@@ -43,7 +56,7 @@ RSpec.describe "Rake tasks" do
       expect(Dir.exist?(vendored("images/rebrand"))).to be false
     end
 
-    it "removes assets that govuk-frontend no longer ships" do
+    it "does not vendor assets govuk-frontend no longer ships" do
       %w[
         stylesheets/all.scss
         images/govuk-crest.png
