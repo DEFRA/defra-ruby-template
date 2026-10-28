@@ -67,18 +67,22 @@ RSpec.describe "Rake tasks" do
     describe "the stylesheet entry point" do
       subject(:scss) { File.read(vendored("stylesheets/defra_ruby_template.scss")) }
 
-      it "imports govuk-frontend's index, not its deprecated all", :aggregate_failures do
-        expect(scss).to include('@import "index.import"')
-        expect(scss).not_to include('@import "all"')
+      it "forwards govuk-frontend's index module rather than importing its shim", :aggregate_failures do
+        expect(scss).to include('@forward "index"')
+        expect(scss).not_to match(/^@import/)
       end
 
       it "does not carry govuk-frontend's import-using-all deprecation warning" do
         expect(scss).not_to include("import-using-all")
       end
 
-      it "points the image and font URL helpers at the matching Rails helper", :aggregate_failures do
-        expect(scss).to match(/\$govuk-image-url-function:\s*"image-url"/)
-        expect(scss).to match(/\$govuk-font-url-function:\s*"font-url"/)
+      it "hands over each Rails helper as a function reference", :aggregate_failures do
+        expect(scss).to include('meta.get-function("image-url")')
+        expect(scss).to include('meta.get-function("font-url")')
+      end
+
+      it "suppresses none of govuk-frontend's deprecation warnings" do
+        expect(scss).not_to include("$govuk-suppressed-warnings")
       end
     end
 
