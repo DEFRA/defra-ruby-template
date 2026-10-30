@@ -36,6 +36,3 @@ jobs:
           npm ci
           bundle exec rake
           git diff --exit-code
-
-      - name: Check the vendored stylesheet compiles
-        run: npm test

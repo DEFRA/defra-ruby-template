@@ -9,8 +9,9 @@
 
 Adds a GOV.UK-ready layout template and the [govuk_frontend assets](https://github.com/alphagov/govuk-frontend) to a Rails application.
 
-The gem's version tracks the version of govuk-frontend it vendors, so 6.4.0 of
-this gem ships govuk-frontend 6.4.0.
+The gem's major and minor version track the version of govuk-frontend it
+vendors, so 6.6.x of this gem ships govuk-frontend 6.6.0. Patch releases are
+changes to the gem itself.
 
 ## Installation
 
@@ -62,6 +63,31 @@ provides with `content_for`, then render it:
 <%= render template: "layouts/defra_ruby_template" %>
 ```
 
+### Stylesheets
+
+The gem's stylesheet entry point is a Sass module. Load it from the
+application's own stylesheet with `@use`:
+
+```scss
+@use "defra_ruby_template" as *;
+```
+
+That emits govuk-frontend's CSS and makes its settings, tools and helpers
+available unprefixed, the way `@import` did - `govuk-colour`, `govuk-font`,
+`$govuk-text-colour` and so on. The same rule configures govuk-frontend's own
+settings:
+
+```scss
+@use "defra_ruby_template" as * with (
+  $govuk-assets-path: "/custom-assets/"
+);
+```
+
+Unlike `@import`, a `@use` applies only to the file it appears in, and it has
+to come before any other rule in that file. A partial that is still
+`@import`ed is pulled into the importing file's scope, so it keeps working
+untouched - only a partial loaded with `@use` needs its own `@use` line.
+
 ## Requirements
 
 ### Dart Sass
@@ -88,29 +114,23 @@ to the Gemfile:
 gem "dartsass-sprockets"
 ```
 
-`dartsass-rails` is the other option. It compiles outside Sprockets, which means
-the Rails asset helpers are not available as Sass functions - this gem's
-stylesheet detects that and falls back to govuk-frontend's own
-`$govuk-assets-path`, but any application stylesheet calling `image-url` or
-`font-url` would need rewriting. Serving the prebuilt
+`dartsass-rails` will not work. It compiles outside Sprockets, so the Rails
+asset helpers are not registered as Sass functions and this gem's stylesheet
+fails to compile. Serving the prebuilt
 `vendor/assets/stylesheets/govuk-frontend.min.css` and dropping SCSS compilation
-altogether is a third option, but it gives up the settings, tools and helpers
+altogether is the other option, but it gives up the settings, tools and helpers
 that application stylesheets use.
 
-Dart Sass warns that `@import` is deprecated. Sprockets stylesheets are built on
-`@import`, so until Rails' asset pipeline moves to `@use` these warnings are
-expected. Silence them per application with:
-
-```ruby
-config.sass.silence_deprecations = ["import"]
-```
+Dart Sass warns that `@import` is deprecated. Nothing the gem ships uses it, so
+an application that loads the gem with `@use` and has converted its own
+partials does not need `config.sass.silence_deprecations = ["import"]`.
 
 [dartsass-sprockets]: https://github.com/tablecheck/dartsass-sprockets
 
 ### govuk_design_system_formbuilder
 
-Pin `govuk_design_system_formbuilder` to `~> 6.4.0`. That is the release that
-tracks govuk-frontend 6.4.0; earlier 6.x releases target earlier govuk-frontend
+Pin `govuk_design_system_formbuilder` to `~> 6.6.0`. That is the release that
+tracks govuk-frontend 6.6.0; earlier 6.x releases target earlier govuk-frontend
 6.x versions, and 5.x emits govuk-frontend 5 markup.
 
 ### Content Security Policy
@@ -125,10 +145,44 @@ This gem instead ships that one statement as an asset,
 `<body>`. No inline script is used, so no `unsafe-inline` or nonce is needed for
 it.
 
+## Upgrading from 6.4.0
+
+6.6.0 vendors govuk-frontend 6.6.0, and turns the stylesheet entry point from
+an `@import` shim into a Sass module so that neither Sass nor govuk-frontend
+emits a deprecation warning. The gem now only compiles under Sprockets, which
+is what registers the Rails asset helpers as Sass functions.
+
+In each application:
+
+1. Pin `govuk_design_system_formbuilder` to `~> 6.6.0`.
+2. Replace `@import "defra_ruby_template"` with `@use "defra_ruby_template" as *`
+   at the top of the stylesheet. Partials it `@import`s keep working as they are.
+3. Convert those `@import`s to `@use` too, giving each partial that uses
+   govuk-frontend's settings, tools or helpers its own `@use` line.
+4. Drop `config.sass.silence_deprecations = ["import"]`.
+
+`@import "defra_ruby_template"` still works, so the steps can be taken
+separately, but it keeps the deprecation warning.
+
+govuk-frontend 6.5 and 6.6 carry no breaking changes. They add the Language
+navigation and Feedback components, both in trial status, and deprecate three
+organisation colours following the July 2026 machinery of government changes.
+
+### Deprecated colour names
+
+govuk-frontend 6 renamed the colour palette. The old names still resolve, but
+each one warns - replace them with the name the warning gives, for example
+`govuk-colour("black", $variant: "tint-95")` for `govuk-colour("light-grey")`.
+
+Adding `pre-brand-colour` to `$govuk-suppressed-warnings` does not silence it:
+govuk-frontend 6.6.0 calls an undefined `_should-warn()` in
+`helpers/_colour.scss`, which Sass falls back to treating as a plain CSS
+function, so the suppression check is always true.
+
 ## Upgrading from 5.x
 
 1. Move the application to a Dart Sass pipeline (see above).
-2. Update `govuk_design_system_formbuilder` to `~> 6.4.0`.
+2. Update `govuk_design_system_formbuilder` to `~> 6.6.0`.
 3. Replace the contents of the `:header_content` slot (see below).
 4. Check any application stylesheet or markup using classes govuk-frontend 6
    removed - `govuk-template--rebranded`, `govuk-header__content`,
@@ -183,7 +237,7 @@ writes three files that are generated rather than copied:
 
 | File | Generated from |
 |------|----------------|
-| `vendor/assets/stylesheets/defra_ruby_template.scss` | the entry point applications import |
+| `vendor/assets/stylesheets/defra_ruby_template.scss` | the entry point applications load |
 | `vendor/assets/javascripts/defra_ruby_template_supported.js` | the inline script in govuk-frontend's `template.njk` |
 | `vendor/assets/assets/manifest.json.erb` | govuk-frontend's `manifest.json`, with its icon paths rewritten to `asset_path` |
 
