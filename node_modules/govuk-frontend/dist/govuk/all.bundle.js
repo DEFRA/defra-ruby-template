@@ -4,7 +4,7 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.GOVUKFrontend = global.GOVUKFrontend || {}));
 })(this, (function (exports) { 'use strict';
 
-  const version = '6.4.0';
+  const version = '6.6.0';
 
   function getBreakpoint(name) {
     const property = `--govuk-breakpoint-${name}`;
@@ -84,11 +84,14 @@
     /**
      * Checks if GOV.UK Frontend is supported on this page
      *
-     * @param {HTMLElement | null} [$scope] - HTML element `<body>` checked for browser support
+     * @param {Element | Document | null | string} [scopeOrMessage] - HTML element `<body>` checked for browser support or support error message
      */
-    constructor($scope = document.body) {
-      const supportMessage = 'noModule' in HTMLScriptElement.prototype ? 'GOV.UK Frontend initialised without `<body class="govuk-frontend-supported">` from template `<script>` snippet' : 'GOV.UK Frontend is not supported in this browser';
-      super($scope ? supportMessage : 'GOV.UK Frontend initialised without `<script type="module">`');
+    constructor(scopeOrMessage = document.body) {
+      let supportMessage = 'noModule' in HTMLScriptElement.prototype ? 'GOV.UK Frontend initialised without `<body class="govuk-frontend-supported">` from template `<script>` snippet' : 'GOV.UK Frontend is not supported in this browser';
+      if (!isScope(scopeOrMessage)) {
+        supportMessage = 'GOV.UK Frontend initialised without `<script type="module">`';
+      }
+      super(typeof scopeOrMessage === 'string' ? scopeOrMessage : supportMessage);
       this.name = 'SupportError';
     }
   }
@@ -129,6 +132,7 @@
    * @import { ComponentWithModuleName } from '../common/index.mjs'
    */
 
+  const _self$1 = typeof globalThis !== 'undefined' ? globalThis : self;
   class Component {
     /**
      * Returns the root element of the component
@@ -182,7 +186,7 @@
   /**
    * @typedef {typeof Component & ChildClass} ChildClassConstructor
    */
-  Component.elementType = HTMLElement;
+  Component.elementType = _self$1.HTMLElement;
 
   const configOverride = Symbol.for('configOverride');
   class ConfigurableComponent extends Component {
@@ -207,10 +211,14 @@
         throw new ConfigError(formatErrorMessage(childConstructor, 'Config passed as parameter into constructor but no defaults defined'));
       }
       const datasetConfig = normaliseDataset(childConstructor, this._$root.dataset);
-      this._config = mergeConfigs(childConstructor.defaults, config != null ? config : {}, this[configOverride](datasetConfig), datasetConfig);
+      this._config = mergeConfigs(childConstructor.defaults, config != null ? config : {});
+      this._config = mergeConfigs(this._config, this[configOverride](datasetConfig), datasetConfig);
     }
   }
   function normaliseString(value, property) {
+    if (property != null && property.type && !['string', 'number', 'boolean'].includes(property.type)) {
+      return;
+    }
     const trimmedValue = value ? value.trim() : '';
     let output;
     let outputType = property == null ? void 0 : property.type;
@@ -374,6 +382,17 @@
    * @import { CompatibleClass, Config, CreateAllOptions, OnErrorCallback } from '../init.mjs'
    */
 
+  function createElement(tagName, attributes = {}, children = []) {
+    const $element = document.createElement(tagName);
+    Object.entries(attributes).forEach(([name, value]) => {
+      $element.setAttribute(name, value);
+    });
+    for (const child of children) {
+      $element.append(child);
+    }
+    return $element;
+  }
+
   class I18n {
     constructor(translations = {}, config = {}) {
       var _config$locale;
@@ -465,24 +484,16 @@
     constructor($root, config = {}) {
       super($root, config);
       this.i18n = void 0;
-      this.controlsClass = 'govuk-accordion__controls';
-      this.showAllClass = 'govuk-accordion__show-all';
-      this.showAllTextClass = 'govuk-accordion__show-all-text';
       this.sectionClass = 'govuk-accordion__section';
-      this.sectionExpandedClass = 'govuk-accordion__section--expanded';
+      this.sectionExpandedModifier = 'govuk-accordion__section--expanded';
       this.sectionButtonClass = 'govuk-accordion__section-button';
       this.sectionHeaderClass = 'govuk-accordion__section-header';
       this.sectionHeadingClass = 'govuk-accordion__section-heading';
-      this.sectionHeadingDividerClass = 'govuk-accordion__section-heading-divider';
       this.sectionHeadingTextClass = 'govuk-accordion__section-heading-text';
-      this.sectionHeadingTextFocusClass = 'govuk-accordion__section-heading-text-focus';
-      this.sectionShowHideToggleClass = 'govuk-accordion__section-toggle';
-      this.sectionShowHideToggleFocusClass = 'govuk-accordion__section-toggle-focus';
-      this.sectionShowHideTextClass = 'govuk-accordion__section-toggle-text';
-      this.upChevronIconClass = 'govuk-accordion-nav__chevron';
-      this.downChevronIconClass = 'govuk-accordion-nav__chevron--down';
+      this.sectionToggleTextClass = 'govuk-accordion__section-toggle-text';
+      this.iconClass = 'govuk-accordion-nav__chevron';
+      this.iconOpenModifier = 'govuk-accordion-nav__chevron--down';
       this.sectionSummaryClass = 'govuk-accordion__section-summary';
-      this.sectionSummaryFocusClass = 'govuk-accordion__section-summary-focus';
       this.sectionContentClass = 'govuk-accordion__section-content';
       this.$sections = void 0;
       this.$showAllButton = null;
@@ -502,19 +513,23 @@
       this.updateShowAllButton(this.areAllSectionsOpen());
     }
     initControls() {
-      this.$showAllButton = document.createElement('button');
-      this.$showAllButton.setAttribute('type', 'button');
-      this.$showAllButton.setAttribute('class', this.showAllClass);
-      this.$showAllButton.setAttribute('aria-expanded', 'false');
-      this.$showAllIcon = document.createElement('span');
-      this.$showAllIcon.classList.add(this.upChevronIconClass);
+      this.$showAllButton = createElement('button', {
+        type: 'button',
+        class: 'govuk-accordion__show-all',
+        'aria-expanded': 'false'
+      });
+      this.$showAllIcon = createElement('span', {
+        class: this.iconClass
+      });
       this.$showAllButton.appendChild(this.$showAllIcon);
-      const $accordionControls = document.createElement('div');
-      $accordionControls.setAttribute('class', this.controlsClass);
+      const $accordionControls = createElement('div', {
+        class: 'govuk-accordion__controls'
+      });
       $accordionControls.appendChild(this.$showAllButton);
       this.$root.insertBefore($accordionControls, this.$root.firstChild);
-      this.$showAllText = document.createElement('span');
-      this.$showAllText.classList.add(this.showAllTextClass);
+      this.$showAllText = createElement('span', {
+        class: 'govuk-accordion__show-all-text'
+      });
       this.$showAllButton.appendChild(this.$showAllText);
       this.$showAllButton.addEventListener('click', () => this.onShowOrHideAllToggle());
       if ('onbeforematch' in document) {
@@ -552,39 +567,45 @@
           identifier: `Section button placeholder (\`<span class="${this.sectionButtonClass}">\`)`
         });
       }
-      const $button = document.createElement('button');
-      $button.setAttribute('type', 'button');
-      $button.setAttribute('aria-controls', `${this.$root.id}-content-${index + 1}`);
+      const $button = createElement('button', {
+        type: 'button',
+        'aria-controls': `${this.$root.id}-content-${index + 1}`
+      });
       for (const attr of Array.from($span.attributes)) {
         if (attr.name !== 'id') {
           $button.setAttribute(attr.name, attr.value);
         }
       }
-      const $headingText = document.createElement('span');
-      $headingText.classList.add(this.sectionHeadingTextClass);
-      $headingText.id = $span.id;
-      const $headingTextFocus = document.createElement('span');
-      $headingTextFocus.classList.add(this.sectionHeadingTextFocusClass);
+      const $headingText = createElement('span', {
+        class: this.sectionHeadingTextClass,
+        id: $span.id
+      });
+      const $headingTextFocus = createElement('span', {
+        class: 'govuk-accordion__section-heading-text-focus'
+      });
       $headingText.appendChild($headingTextFocus);
       Array.from($span.childNodes).forEach($child => $headingTextFocus.appendChild($child));
-      const $showHideToggle = document.createElement('span');
-      $showHideToggle.classList.add(this.sectionShowHideToggleClass);
-      $showHideToggle.setAttribute('data-nosnippet', '');
-      const $showHideToggleFocus = document.createElement('span');
-      $showHideToggleFocus.classList.add(this.sectionShowHideToggleFocusClass);
+      const $showHideToggle = createElement('span', {
+        class: 'govuk-accordion__section-toggle',
+        'data-nosnippet': ''
+      });
+      const $showHideToggleFocus = createElement('span', {
+        class: 'govuk-accordion__section-toggle-focus'
+      });
       $showHideToggle.appendChild($showHideToggleFocus);
-      const $showHideText = document.createElement('span');
-      const $showHideIcon = document.createElement('span');
-      $showHideIcon.classList.add(this.upChevronIconClass);
-      $showHideToggleFocus.appendChild($showHideIcon);
-      $showHideText.classList.add(this.sectionShowHideTextClass);
-      $showHideToggleFocus.appendChild($showHideText);
+      $showHideToggleFocus.appendChild(createElement('span', {
+        class: this.iconClass
+      }));
+      $showHideToggleFocus.appendChild(createElement('span', {
+        class: this.sectionToggleTextClass
+      }));
       $button.appendChild($headingText);
       $button.appendChild(this.getButtonPunctuationEl());
       if ($summary) {
-        const $summarySpan = document.createElement('span');
-        const $summarySpanFocus = document.createElement('span');
-        $summarySpanFocus.classList.add(this.sectionSummaryFocusClass);
+        const $summarySpan = createElement('span');
+        const $summarySpanFocus = createElement('span', {
+          class: 'govuk-accordion__section-summary-focus'
+        });
         $summarySpan.appendChild($summarySpanFocus);
         for (const attr of Array.from($summary.attributes)) {
           $summarySpan.setAttribute(attr.name, attr.value);
@@ -622,8 +643,8 @@
       this.updateShowAllButton(nowExpanded);
     }
     setExpanded(expanded, $section) {
-      const $showHideIcon = $section.querySelector(`.${this.upChevronIconClass}`);
-      const $showHideText = $section.querySelector(`.${this.sectionShowHideTextClass}`);
+      const $showHideIcon = $section.querySelector(`.${this.iconClass}`);
+      const $showHideText = $section.querySelector(`.${this.sectionToggleTextClass}`);
       const $button = $section.querySelector(`.${this.sectionButtonClass}`);
       const $content = $section.querySelector(`.${this.sectionContentClass}`);
       if (!$content) {
@@ -652,17 +673,17 @@
       $button.setAttribute('aria-label', ariaLabelParts.join(' , '));
       if (expanded) {
         $content.removeAttribute('hidden');
-        $section.classList.add(this.sectionExpandedClass);
-        $showHideIcon.classList.remove(this.downChevronIconClass);
+        $section.classList.add(this.sectionExpandedModifier);
+        $showHideIcon.classList.remove(this.iconOpenModifier);
       } else {
         $content.setAttribute('hidden', 'until-found');
-        $section.classList.remove(this.sectionExpandedClass);
-        $showHideIcon.classList.add(this.downChevronIconClass);
+        $section.classList.remove(this.sectionExpandedModifier);
+        $showHideIcon.classList.add(this.iconOpenModifier);
       }
       this.updateShowAllButton(this.areAllSectionsOpen());
     }
     isExpanded($section) {
-      return $section.classList.contains(this.sectionExpandedClass);
+      return $section.classList.contains(this.sectionExpandedModifier);
     }
     areAllSectionsOpen() {
       return Array.from(this.$sections).every($section => this.isExpanded($section));
@@ -673,7 +694,7 @@
       }
       this.$showAllButton.setAttribute('aria-expanded', expanded.toString());
       this.$showAllText.textContent = expanded ? this.i18n.t('hideAllSections') : this.i18n.t('showAllSections');
-      this.$showAllIcon.classList.toggle(this.downChevronIconClass, !expanded);
+      this.$showAllIcon.classList.toggle(this.iconOpenModifier, !expanded);
     }
 
     /**
@@ -716,10 +737,11 @@
       }
     }
     getButtonPunctuationEl() {
-      const $punctuationEl = document.createElement('span');
-      $punctuationEl.classList.add('govuk-visually-hidden', this.sectionHeadingDividerClass);
-      $punctuationEl.textContent = ', ';
-      return $punctuationEl;
+      const $element = createElement('span', {
+        class: 'govuk-visually-hidden govuk-accordion__section-heading-divider'
+      });
+      $element.textContent = ', ';
+      return $element;
     }
   }
 
@@ -875,6 +897,14 @@
           maxwords: undefined
         };
       }
+      if ('maxwords' in datasetConfig || this.config.maxwords !== undefined) {
+        console.warn(formatErrorMessage(CharacterCount, 'Option `maxwords` is deprecated. Use `maxlength` with `countType: "words"` instead.'));
+        if (!('maxlength' in datasetConfig)) {
+          var _datasetConfig$maxwor;
+          configOverrides.maxlength = (_datasetConfig$maxwor = datasetConfig.maxwords) != null ? _datasetConfig$maxwor : this.config.maxwords;
+          configOverrides.countType = 'words';
+        }
+      }
       return configOverrides;
     }
 
@@ -883,10 +913,11 @@
      * @param {CharacterCountConfig} [config] - Character count config
      */
     constructor($root, config = {}) {
-      var _ref, _this$config$maxwords;
+      var _this$config$maxlengt;
       super($root, config);
       this.$textarea = void 0;
       this.count = 0;
+      this.segmenter = null;
       this.$visibleCountMessage = void 0;
       this.$screenReaderCountMessage = void 0;
       this.lastInputTimestamp = null;
@@ -910,7 +941,15 @@
       this.i18n = new I18n(this.config.i18n, {
         locale: closestAttributeValue(this.$root, 'lang')
       });
-      this.maxLength = (_ref = (_this$config$maxwords = this.config.maxwords) != null ? _this$config$maxwords : this.config.maxlength) != null ? _ref : Infinity;
+      if (this.config.countType === 'characters' || this.config.countType === 'words' && this.config.maxwords === undefined) {
+        if (!('Segmenter' in Intl)) {
+          throw new SupportError(formatErrorMessage(CharacterCount, 'Support for "Intl.Segmenter" required'));
+        }
+        this.segmenter = new Intl.Segmenter(this.i18n.locale, {
+          granularity: this.config.countType === 'words' ? 'word' : 'grapheme'
+        });
+      }
+      this.maxLength = (_this$config$maxlengt = this.config.maxlength) != null ? _this$config$maxlengt : Infinity;
       this.$textarea = $textarea;
       const textareaDescriptionId = `${this.$textarea.id}-info`;
       const $textareaDescription = document.getElementById(textareaDescriptionId);
@@ -928,15 +967,16 @@
         });
       }
       this.$textarea.insertAdjacentElement('afterend', $textareaDescription);
-      const $screenReaderCountMessage = document.createElement('div');
-      $screenReaderCountMessage.className = 'govuk-character-count__sr-status govuk-visually-hidden';
-      $screenReaderCountMessage.setAttribute('aria-live', 'polite');
+      const $screenReaderCountMessage = createElement('div', {
+        class: 'govuk-character-count__sr-status govuk-visually-hidden',
+        'aria-live': 'polite'
+      });
       this.$screenReaderCountMessage = $screenReaderCountMessage;
       $textareaDescription.insertAdjacentElement('afterend', $screenReaderCountMessage);
-      const $visibleCountMessage = document.createElement('div');
-      $visibleCountMessage.className = $textareaDescription.className;
-      $visibleCountMessage.classList.add('govuk-character-count__status');
-      $visibleCountMessage.setAttribute('aria-hidden', 'true');
+      const $visibleCountMessage = createElement('div', {
+        class: `${$textareaDescription.className} govuk-character-count__status`,
+        'aria-hidden': 'true'
+      });
       this.$visibleCountMessage = $visibleCountMessage;
       $textareaDescription.insertAdjacentElement('afterend', $visibleCountMessage);
       $textareaDescription.classList.add('govuk-visually-hidden');
@@ -1004,26 +1044,38 @@
     }
     updateCount() {
       const text = this.$textarea.value;
-      if (this.config.maxwords) {
-        var _text$match;
-        const tokens = (_text$match = text.match(/\S+/g)) != null ? _text$match : [];
-        this.count = tokens.length;
+      if (this.config.countType === 'characters') {
+        this.count = this.segmenter ? Array.from(this.segmenter.segment(text)).length : 0;
+        return;
+      }
+      if (this.config.countType === 'words') {
+        if (this.config.maxwords !== undefined) {
+          var _text$match$length, _text$match;
+          this.count = (_text$match$length = (_text$match = text.match(/\S+/g)) == null ? void 0 : _text$match.length) != null ? _text$match$length : 0;
+          return;
+        }
+        const segments = this.segmenter ? Array.from(this.segmenter.segment(text)) : [];
+        this.count = segments.filter(segment => segment.isWordLike).length;
         return;
       }
       this.count = text.length;
     }
     getCountMessage() {
       const remainingNumber = this.maxLength - this.count;
-      const countType = this.config.maxwords ? 'words' : 'characters';
-      return this.formatCountMessage(remainingNumber, countType);
+      return this.formatCountMessage(remainingNumber);
     }
     formatCountMessage(remainingNumber, countType) {
-      if (remainingNumber === 0) {
-        return this.i18n.t(`${countType}AtLimit`);
+      countType = countType != null ? countType : this.config.countType;
+      let translationKeyPrefix = 'characters';
+      let translationKeySuffix = remainingNumber < 0 ? 'OverLimit' : 'UnderLimit';
+      if (countType === 'words') {
+        translationKeyPrefix = 'words';
       }
-      const translationKeySuffix = remainingNumber < 0 ? 'OverLimit' : 'UnderLimit';
-      return this.i18n.t(`${countType}${translationKeySuffix}`, {
-        count: Math.abs(remainingNumber)
+      if (remainingNumber === 0) {
+        translationKeySuffix = 'AtLimit';
+      }
+      return this.i18n.t(`${translationKeyPrefix}${translationKeySuffix}`, {
+        count: remainingNumber === 0 ? undefined : Math.abs(remainingNumber)
       });
     }
     isOverThreshold() {
@@ -1042,13 +1094,15 @@
    *
    * @see {@link CharacterCount.defaults}
    * @typedef {object} CharacterCountConfig
-   * @property {number} [maxlength] - The maximum number of characters.
-   *   If maxwords is provided, the maxlength option will be ignored.
-   * @property {number} [maxwords] - The maximum number of words. If maxwords is
-   *   provided, the maxlength option will be ignored.
+   * @property {number} [maxlength] - The maximum number of characters (or words
+   *   if `countType` is set to `"words"`).
+   * @property {number} [maxwords] - Deprecated. Use `maxlength` and
+   *   `countType: "words"` instead.
    * @property {number} [threshold=0] - The percentage value of the limit at
    *   which point the count message is displayed. If this attribute is set, the
    *   count message will be hidden by default.
+   * @property {'characters' | 'length' | 'words'} [countType] - The count type
+   *   (`"characters"`, `"length"` or `"words"`) used to count the text.
    * @property {CharacterCountTranslations} [i18n=CharacterCount.defaults.i18n] - Character count translations
    */
 
@@ -1094,9 +1148,9 @@
    * @property {TranslationPluralForms} [textareaDescription] - Message made
    *   available to assistive technologies, if none is already present in the
    *   HTML, to describe that the component accepts only a limited amount of
-   *   content. It is visible on the page when JavaScript is unavailable. The
-   *   component will replace the `%{count}` placeholder with the value of the
-   *   `maxlength` or `maxwords` parameter.
+   *   content. It is visible on the page if `countType` is not supported or
+   *   JavaScript is unavailable. The component will replace the `%{count}`
+   *   placeholder with the value of the `maxlength` parameter.
    */
 
   /**
@@ -1106,6 +1160,7 @@
   CharacterCount.moduleName = 'govuk-character-count';
   CharacterCount.defaults = Object.freeze({
     threshold: 0,
+    countType: 'length',
     i18n: {
       charactersUnderLimit: {
         one: 'You have %{count} character remaining',
@@ -1143,6 +1198,9 @@
       },
       threshold: {
         type: 'number'
+      },
+      countType: {
+        type: 'string'
       }
     },
     anyOf: [{
@@ -1405,9 +1463,10 @@
       window.addEventListener('pageshow', this.resetPage.bind(this));
     }
     initUpdateSpan() {
-      this.$updateSpan = document.createElement('span');
-      this.$updateSpan.setAttribute('role', 'status');
-      this.$updateSpan.className = 'govuk-visually-hidden';
+      this.$updateSpan = createElement('span', {
+        role: 'status',
+        class: 'govuk-visually-hidden'
+      });
       this.$root.appendChild(this.$updateSpan);
     }
     initButtonClickHandler() {
@@ -1417,13 +1476,14 @@
       }
     }
     buildIndicator() {
-      this.$indicatorContainer = document.createElement('div');
-      this.$indicatorContainer.className = 'govuk-exit-this-page__indicator';
-      this.$indicatorContainer.setAttribute('aria-hidden', 'true');
+      this.$indicatorContainer = createElement('div', {
+        class: 'govuk-exit-this-page__indicator',
+        'aria-hidden': 'true'
+      });
       for (let i = 0; i < 3; i++) {
-        const $indicator = document.createElement('div');
-        $indicator.className = 'govuk-exit-this-page__indicator-light';
-        this.$indicatorContainer.appendChild($indicator);
+        this.$indicatorContainer.appendChild(createElement('div', {
+          class: 'govuk-exit-this-page__indicator-light'
+        }));
       }
       this.$button.appendChild(this.$indicatorContainer);
     }
@@ -1443,9 +1503,10 @@
       }
       this.$updateSpan.textContent = '';
       document.body.classList.add('govuk-exit-this-page-hide-content');
-      this.$overlay = document.createElement('div');
-      this.$overlay.className = 'govuk-exit-this-page-overlay';
-      this.$overlay.setAttribute('role', 'alert');
+      this.$overlay = createElement('div', {
+        class: 'govuk-exit-this-page-overlay',
+        role: 'alert'
+      });
       document.body.appendChild(this.$overlay);
       this.$overlay.textContent = this.i18n.t('activated');
       window.location.href = this.$button.href;
@@ -1625,46 +1686,48 @@
       this.$input.addEventListener('change', this.onChange.bind(this));
       this.updateDisabledState();
       this.observeDisabledState();
-      this.$announcements = document.createElement('span');
-      this.$announcements.classList.add('govuk-file-upload-announcements');
-      this.$announcements.classList.add('govuk-visually-hidden');
-      this.$announcements.setAttribute('aria-live', 'assertive');
+      this.$announcements = createElement('span', {
+        class: 'govuk-file-upload-announcements govuk-visually-hidden',
+        'aria-live': 'assertive'
+      });
       this.$root.insertAdjacentElement('afterend', this.$announcements);
       this.bindDraggingEvents();
     }
     createStatus() {
-      const $status = document.createElement('span');
-      $status.className = 'govuk-body govuk-file-upload-button__status';
-      $status.setAttribute('aria-live', 'polite');
+      const $status = createElement('span', {
+        class: 'govuk-body govuk-file-upload-button__status',
+        'aria-live': 'polite'
+      });
       $status.innerText = this.i18n.t('noFileChosen');
       return $status;
     }
     createButton() {
-      const $button = document.createElement('button');
-      $button.classList.add('govuk-file-upload-button');
-      $button.type = 'button';
-      $button.id = this.id;
-      $button.classList.add('govuk-file-upload-button--empty');
+      const $button = createElement('button', {
+        class: 'govuk-file-upload-button govuk-file-upload-button--empty',
+        type: 'button',
+        id: this.id
+      });
       const ariaDescribedBy = this.$input.getAttribute('aria-describedby');
       if (ariaDescribedBy) {
         $button.setAttribute('aria-describedby', ariaDescribedBy);
       }
       $button.appendChild(this.$status);
-      const commaSpan = document.createElement('span');
-      commaSpan.className = 'govuk-visually-hidden';
-      commaSpan.innerText = ', ';
-      commaSpan.id = `${this.id}-comma`;
+      const commaSpan = createElement('span', {
+        class: 'govuk-visually-hidden',
+        id: `${this.id}-comma`
+      }, [', ']);
       $button.appendChild(commaSpan);
-      const containerSpan = document.createElement('span');
-      containerSpan.className = 'govuk-file-upload-button__pseudo-button-container';
-      const buttonSpan = document.createElement('span');
-      buttonSpan.className = 'govuk-button govuk-button--secondary govuk-file-upload-button__pseudo-button';
-      buttonSpan.innerText = this.i18n.t('chooseFilesButton');
+      const containerSpan = createElement('span', {
+        class: 'govuk-file-upload-button__pseudo-button-container'
+      });
+      const buttonSpan = createElement('span', {
+        class: 'govuk-button govuk-button--secondary govuk-file-upload-button__pseudo-button'
+      }, [this.i18n.t('chooseFilesButton')]);
       containerSpan.appendChild(buttonSpan);
       containerSpan.insertAdjacentText('beforeend', ' ');
-      const instructionSpan = document.createElement('span');
-      instructionSpan.className = 'govuk-body govuk-file-upload-button__instruction';
-      instructionSpan.innerText = this.i18n.t('dropInstruction');
+      const instructionSpan = createElement('span', {
+        class: 'govuk-body govuk-file-upload-button__instruction'
+      }, [this.i18n.t('dropInstruction')]);
       containerSpan.appendChild(instructionSpan);
       $button.appendChild(containerSpan);
       $button.setAttribute('aria-labelledby', `${this.$label.id} ${commaSpan.id} ${$button.id}`);
@@ -1948,9 +2011,10 @@
         locale: closestAttributeValue(this.$root, 'lang')
       });
       this.$showHideButton.removeAttribute('hidden');
-      const $screenReaderStatusMessage = document.createElement('div');
-      $screenReaderStatusMessage.className = 'govuk-password-input__sr-status govuk-visually-hidden';
-      $screenReaderStatusMessage.setAttribute('aria-live', 'polite');
+      const $screenReaderStatusMessage = createElement('div', {
+        class: 'govuk-password-input__sr-status govuk-visually-hidden',
+        'aria-live': 'polite'
+      });
       this.$screenReaderStatusMessage = $screenReaderStatusMessage;
       this.$input.insertAdjacentElement('afterend', $screenReaderStatusMessage);
       this.$showHideButton.addEventListener('click', this.toggle.bind(this));
@@ -2234,6 +2298,7 @@
     }
   }
 
+  const _self = typeof globalThis !== 'undefined' ? globalThis : self;
   /**
    * Skip link component
    *
@@ -2277,7 +2342,7 @@
       }));
     }
   }
-  SkipLink.elementType = HTMLAnchorElement;
+  SkipLink.elementType = _self.HTMLAnchorElement;
   SkipLink.moduleName = 'govuk-skip-link';
 
   /**
@@ -2662,14 +2727,14 @@
    * @typedef {object} Config
    * @property {Element | Document | null} [scope] - Scope of the document to search within
    * @property {OnErrorCallback<CompatibleClass>} [onError] - Initialisation error callback
-   * @property {AccordionConfig} [accordion] - Accordion config
-   * @property {ButtonConfig} [button] - Button config
-   * @property {CharacterCountConfig} [characterCount] - Character Count config
-   * @property {ErrorSummaryConfig} [errorSummary] - Error Summary config
-   * @property {ExitThisPageConfig} [exitThisPage] - Exit This Page config
-   * @property {FileUploadConfig} [fileUpload] - File Upload config
-   * @property {NotificationBannerConfig} [notificationBanner] - Notification Banner config
-   * @property {PasswordInputConfig} [passwordInput] - Password input config
+   * @property {ComponentConfig<typeof Accordion>} [accordion] - Accordion config
+   * @property {ComponentConfig<typeof Button>} [button] - Button config
+   * @property {ComponentConfig<typeof CharacterCount>} [characterCount] - Character Count config
+   * @property {ComponentConfig<typeof ErrorSummary>} [errorSummary] - Error Summary config
+   * @property {ComponentConfig<typeof ExitThisPage>} [exitThisPage] - Exit This Page config
+   * @property {ComponentConfig<typeof FileUpload>} [fileUpload] - File Upload config
+   * @property {ComponentConfig<typeof NotificationBanner>} [notificationBanner] - Notification Banner config
+   * @property {ComponentConfig<typeof PasswordInput>} [passwordInput] - Password input config
    */
   /**
    * Config for individual components
