@@ -10,7 +10,7 @@
 Adds a GOV.UK-ready layout template and the [govuk_frontend assets](https://github.com/alphagov/govuk-frontend) to a Rails application.
 
 The gem's major and minor version track the version of govuk-frontend it
-vendors, so 6.4.x of this gem ships govuk-frontend 6.4.0. Patch releases are
+vendors, so 6.6.x of this gem ships govuk-frontend 6.6.0. Patch releases are
 changes to the gem itself.
 
 ## Installation
@@ -129,8 +129,8 @@ partials does not need `config.sass.silence_deprecations = ["import"]`.
 
 ### govuk_design_system_formbuilder
 
-Pin `govuk_design_system_formbuilder` to `~> 6.4.0`. That is the release that
-tracks govuk-frontend 6.4.0; earlier 6.x releases target earlier govuk-frontend
+Pin `govuk_design_system_formbuilder` to `~> 6.6.0`. That is the release that
+tracks govuk-frontend 6.6.0; earlier 6.x releases target earlier govuk-frontend
 6.x versions, and 5.x emits govuk-frontend 5 markup.
 
 ### Content Security Policy
@@ -147,21 +147,26 @@ it.
 
 ## Upgrading from 6.4.0
 
-The gem now only compiles under Sprockets, which is what registers the Rails
-asset helpers as Sass functions.
+6.6.0 vendors govuk-frontend 6.6.0, and turns the stylesheet entry point from
+an `@import` shim into a Sass module so that neither Sass nor govuk-frontend
+emits a deprecation warning. The gem now only compiles under Sprockets, which
+is what registers the Rails asset helpers as Sass functions.
 
-6.4.1 turns the stylesheet entry point from an `@import` shim into a Sass
-module, and stops suppressing govuk-frontend's deprecation warning about
-passing the asset URL helpers by name. In each application:
+In each application:
 
-1. Replace `@import "defra_ruby_template"` with `@use "defra_ruby_template" as *`
+1. Pin `govuk_design_system_formbuilder` to `~> 6.6.0`.
+2. Replace `@import "defra_ruby_template"` with `@use "defra_ruby_template" as *`
    at the top of the stylesheet. Partials it `@import`s keep working as they are.
-2. Convert those `@import`s to `@use` too, giving each partial that uses
+3. Convert those `@import`s to `@use` too, giving each partial that uses
    govuk-frontend's settings, tools or helpers its own `@use` line.
-3. Drop `config.sass.silence_deprecations = ["import"]`.
+4. Drop `config.sass.silence_deprecations = ["import"]`.
 
 `@import "defra_ruby_template"` still works, so the steps can be taken
 separately, but it keeps the deprecation warning.
+
+govuk-frontend 6.5 and 6.6 carry no breaking changes. They add the Language
+navigation and Feedback components, both in trial status, and deprecate three
+organisation colours following the July 2026 machinery of government changes.
 
 ### Deprecated colour names
 
@@ -170,14 +175,14 @@ each one warns - replace them with the name the warning gives, for example
 `govuk-colour("black", $variant: "tint-95")` for `govuk-colour("light-grey")`.
 
 Adding `pre-brand-colour` to `$govuk-suppressed-warnings` does not silence it:
-govuk-frontend 6.4.0 calls an undefined `_should-warn()` in
+govuk-frontend 6.6.0 calls an undefined `_should-warn()` in
 `helpers/_colour.scss`, which Sass falls back to treating as a plain CSS
 function, so the suppression check is always true.
 
 ## Upgrading from 5.x
 
 1. Move the application to a Dart Sass pipeline (see above).
-2. Update `govuk_design_system_formbuilder` to `~> 6.4.0`.
+2. Update `govuk_design_system_formbuilder` to `~> 6.6.0`.
 3. Replace the contents of the `:header_content` slot (see below).
 4. Check any application stylesheet or markup using classes govuk-frontend 6
    removed - `govuk-template--rebranded`, `govuk-header__content`,
