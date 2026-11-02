@@ -121,46 +121,23 @@ end
 # @use/@forward and ships sibling *.import.scss shims for @import callers. Both
 # need Dart Sass - LibSass does not implement the module system and quietly
 # emits the @use rules as literal CSS, producing a stylesheet with no styles in
-# it. Consuming apps import this file, so all it does is point the asset URL
-# helpers at Sprockets (when Sprockets is what is compiling it) and hand over to
-# govuk-frontend.
+# it. Consuming apps load this file, so all it does is point the asset URL
+# helpers at Sprockets and hand over to govuk-frontend.
 #
 # It deliberately no longer wraps govuk-frontend's all.scss, which exists only
 # to emit an "Importing using 'govuk/all' is deprecated" warning on every
 # compile.
 SCSS_ENTRY_POINT = <<~SCSS
-  // Compiled through Sprockets (sassc-rails, dartsass-sprockets) the Rails
-  // asset helpers are registered as Sass functions, so hand govuk-frontend
-  // their names and asset URLs resolve to digest paths. Compiled standalone
-  // (dartsass-rails, a plain `sass` run) they do not exist, and govuk-frontend
-  // falls back to $govuk-images-path / $govuk-fonts-path.
-  //
-  // The variables are declared before the @if so that the assignment inside it
-  // updates the global rather than creating one scoped to the @if.
+  // The gem is compiled through Sprockets (dartsass-sprockets), which registers
+  // the Rails asset helpers as Sass functions. Handing govuk-frontend references
+  // to them is what makes asset URLs come out as digest paths. Compiling this
+  // file outside Sprockets is not supported - meta.get-function raises there.
   @use "sass:meta";
 
-  $govuk-image-url-function: null;
-  $govuk-font-url-function: null;
-
-  @if meta.function-exists("image-url") {
-    $govuk-image-url-function: "image-url";
-  }
-
-  @if meta.function-exists("font-url") {
-    $govuk-font-url-function: "font-url";
-  }
-
-  // Passing the helpers by name is the only form available to @import users,
-  // and govuk-frontend deprecates it in favour of meta.get-function, which
-  // needs @use. Silence the warning until this file can be migrated.
-  $govuk-suppressed-warnings: ("image-url-string", "font-url-string");
-
-  // index.import rather than index: Dart Sass maps `@import "index"` onto
-  // index.import.scss itself, but Sprockets-based pipelines supply their own
-  // importer and resolve `index` to index.scss - the module entry point, which
-  // silently ignores the settings above and emits undigested asset URLs.
-  // Naming the shim explicitly makes both routes behave the same.
-  @import "index.import";
+  @forward "index" with (
+    $govuk-image-url-function: meta.get-function("image-url"),
+    $govuk-font-url-function: meta.get-function("font-url")
+  );
 SCSS
 
 def create_scss_file
